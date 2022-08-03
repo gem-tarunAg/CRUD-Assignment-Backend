@@ -16,6 +16,10 @@ export async function addUser(req: Request, res: Response) {
     user.save((err: any, data: any) => {
       if (err) {
         console.log("There is some error in database connection");
+        res.status(409).send({
+          message: err.message,
+          data: [{ boolean: false }],
+        });
       } else {
         console.log(data, "--- stored succesfully");
         const msg = {
@@ -35,7 +39,7 @@ export async function addUser(req: Request, res: Response) {
           })
           .catch((error: any) => {
             console.error(error);
-            res.status(402).send({
+            res.status(404).send({
               message: error.message,
               data: [{ boolean: false }],
             });
@@ -49,7 +53,7 @@ export async function addUser(req: Request, res: Response) {
   } catch (error: any) {
     console.log(error);
 
-    res.status(402).send({
+    res.status(406).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -66,26 +70,26 @@ export async function loginUser(req: Request, res: Response) {
         passwordDB
       );
       console.log("1--", comparePasswords);
-      console.log("LOCALS--", res.locals.user);
+      console.log("LOCALS--", res.locals.token);
 
       if (comparePasswords && res.locals.user)
         res.status(200).send({
           message: "Successfully logged in",
-          data: [{ boolean: true }, userDB],
+          data: [{ boolean: true }, userDB, res.locals.token],
         });
       else
-        res.status(402).send({
+        res.status(401).send({
           message: "User can't be authenticated",
           data: [{ boolean: false }],
         });
     } else {
-      res.status(402).send({
+      res.status(401).send({
         message: "Username not found",
         data: [{ boolean: false }],
       });
     }
   } catch (error: any) {
-    res.status(402).send({
+    res.status(406).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -113,7 +117,8 @@ export function authenticateToken(
       }
       const jwtdata = {
         body: req.body,
-        user,
+        user: user,
+        token: accesstoken,
       };
       console.log({ res });
       res.locals = jwtdata;
@@ -132,13 +137,68 @@ export async function getProfile(req: Request, res: Response) {
         data: [{ boolean: true }, userDB],
       });
     } else {
-      res.status(402).send({
+      res.status(406).send({
         message: "Invalid username",
         data: [{ boolean: false }],
       });
     }
   } catch (error: any) {
-    res.status(402).send({
+    res.status(406).send({
+      message: error.message,
+      data: [{ boolean: false }],
+    });
+  }
+}
+
+export async function updateUser(req: Request, res: Response) {
+  try {
+    const id = req.params.id;
+    console.log("id--", id);
+
+    const updatedUser = req.body;
+    console.log(updatedUser);
+
+    User.findByIdAndUpdate(id, updatedUser, (err: any, user: any) => {
+      if (err) {
+        res.status(404).send({
+          message: err.message,
+          data: [{ boolean: false }],
+        });
+      } else {
+        res.status(200).send({
+          message: "Updated User successfully",
+          data: [{ boolean: true }, updatedUser, user],
+        });
+      }
+    });
+  } catch (error: any) {
+    res.status(406).send({
+      message: error.message,
+      data: [{ boolean: false }],
+    });
+  }
+}
+
+export async function deleteUser(req: Request, res: Response) {
+  try {
+    const id = req.params.id;
+    console.log("id--", id);
+
+    User.deleteOne({ _id: req.params.id }, (err: any, data: any) => {
+      if (err) {
+        res.status(404).send({
+          message: err.message,
+          data: [{ boolean: false }],
+        });
+      } else {
+        res.status(200).send({
+          message: "Succesfully deleted",
+          data: [{ boolean: true }],
+        });
+      }
+    });
+  } catch (error: any) {
+    res.status(406).send({
       message: error.message,
       data: [{ boolean: false }],
     });

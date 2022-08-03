@@ -53,7 +53,7 @@ export async function addUser(req: Request, res: Response) {
   } catch (error: any) {
     console.log(error);
 
-    res.status(406).send({
+    res.status(400).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -83,13 +83,13 @@ export async function loginUser(req: Request, res: Response) {
           data: [{ boolean: false }],
         });
     } else {
-      res.status(401).send({
-        message: "Username not found",
+      res.status(404).send({
+        message: "Profile not found with this username",
         data: [{ boolean: false }],
       });
     }
   } catch (error: any) {
-    res.status(406).send({
+    res.status(400).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -137,13 +137,13 @@ export async function getProfile(req: Request, res: Response) {
         data: [{ boolean: true }, userDB],
       });
     } else {
-      res.status(406).send({
+      res.status(404).send({
         message: "Invalid username",
         data: [{ boolean: false }],
       });
     }
   } catch (error: any) {
-    res.status(406).send({
+    res.status(400).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -152,27 +152,35 @@ export async function getProfile(req: Request, res: Response) {
 
 export async function updateUser(req: Request, res: Response) {
   try {
-    const id = req.params.id;
-    console.log("id--", id);
-
     const updatedUser = req.body;
     console.log(updatedUser);
-
-    User.findByIdAndUpdate(id, updatedUser, (err: any, user: any) => {
-      if (err) {
-        res.status(404).send({
-          message: err.message,
-          data: [{ boolean: false }],
-        });
-      } else {
-        res.status(200).send({
-          message: "Updated User successfully",
-          data: [{ boolean: true }, updatedUser, user],
-        });
-      }
-    });
+    const userDB = await User.findOne({ _id: req.params.id });
+    if (userDB !== null) {
+      User.updateOne(
+        { _id: req.params.id },
+        updatedUser,
+        (err: any, user: any) => {
+          if (err) {
+            res.status(400).send({
+              message: err.message,
+              data: [{ boolean: false }],
+            });
+          } else {
+            res.status(200).send({
+              message: "Updated User successfully",
+              data: [{ boolean: true }, updatedUser, user],
+            });
+          }
+        }
+      );
+    } else {
+      res.status(404).send({
+        message: "No Profile found with this id",
+        data: [{ boolean: false }],
+      });
+    }
   } catch (error: any) {
-    res.status(406).send({
+    res.status(400).send({
       message: error.message,
       data: [{ boolean: false }],
     });
@@ -184,21 +192,29 @@ export async function deleteUser(req: Request, res: Response) {
     const id = req.params.id;
     console.log("id--", id);
 
-    User.deleteOne({ _id: req.params.id }, (err: any, data: any) => {
-      if (err) {
-        res.status(404).send({
-          message: err.message,
-          data: [{ boolean: false }],
-        });
-      } else {
-        res.status(200).send({
-          message: "Succesfully deleted",
-          data: [{ boolean: true }],
-        });
-      }
-    });
+    const userDB = await User.findOne({ _id: req.params.id });
+    if (userDB !== null) {
+      User.deleteOne({ _id: req.params.id }, (err: any, data: any) => {
+        if (err) {
+          res.status(400).send({
+            message: err.message,
+            data: [{ boolean: false }],
+          });
+        } else {
+          res.status(200).send({
+            message: "Succesfully deleted",
+            data: [{ boolean: true }, data],
+          });
+        }
+      });
+    } else {
+      res.status(404).send({
+        message: "No Profile found with this id",
+        data: [{ boolean: false }],
+      });
+    }
   } catch (error: any) {
-    res.status(406).send({
+    res.status(400).send({
       message: error.message,
       data: [{ boolean: false }],
     });
